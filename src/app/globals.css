@@ -1,0 +1,479 @@
+@import "tailwindcss";
+
+/*
+ * Global design system — luxury editorial principles
+ * derived from studying gucci.com (no copied text/assets/branding).
+ *
+ * Reference observations -> tokens:
+ * - High-contrast serif display + neutral grotesk body
+ * - Ivory/white canvas, ink text, forest + heritage red + brass accents
+ * - Generous whitespace, narrow editorial container, full-bleed alternation
+ * - Hairline 1px borders, sharp zero-radius formalism
+ * - Typographic nav, centered product cards on quiet ground
+ * - Rectangular uppercase buttons, underline links
+ * - 2-col mobile -> 4-col desktop grids, fluid clamp type
+ */
+
+@theme {
+  /* Typography */
+  --font-display: var(--font-display-serif), "Times New Roman", Georgia, serif;
+  --font-sans: var(--font-sans-body), Helvetica, Arial, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Canvas / neutrals */
+  --color-canvas: #ffffff;
+  --color-ivory: #faf8f2;
+  --color-cream: #f1ece0;
+  --color-sand: #e7deca;
+  --color-linen: #ede8da;
+  --color-fog: #f4f2ec;
+
+  /* Ink */
+  --color-ink: #1a1a18;
+  --color-onyx: #111110;
+  --color-espresso: #2b2721;
+  --color-smoke: #6d6860;
+  --color-stone: #a39c8f;
+
+  /* Accents (original tokens, heritage-inspired) */
+  --color-forest: #12372a;
+  --color-moss: #1e4d3d;
+  --color-heritage: #7a1f2b;
+  --color-gold: #c19a5b;
+  --color-brass: #8a6a33;
+
+  /* Lines */
+  --color-line: #e2d9c5;
+  --color-line-dark: #2e2e2c;
+
+  /* Semantic aliases for existing code */
+  --color-background: var(--color-canvas);
+  --color-foreground: var(--color-ink);
+
+  /* Sharp luxury radius — no pills */
+  --radius-luxe: 0px;
+
+  /* Editorial leading / tracking */
+  --leading-display: 1.04;
+  --leading-body: 1.65;
+  --tracking-eyebrow: 0.22em;
+  --tracking-nav: 0.14em;
+  --tracking-button: 0.16em;
+}
+
+:root {
+  --background: var(--color-canvas);
+  --foreground: var(--color-ink);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: var(--color-onyx);
+    --foreground: #ece9e1;
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: var(--leading-body);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--color-forest);
+    color: var(--color-ivory);
+  }
+
+  :focus-visible {
+    outline: 1px solid var(--color-brass);
+    outline-offset: 3px;
+  }
+
+  img {
+    max-width: 100%;
+  }
+}
+
+@layer components {
+  /* ---------- Containers / spacing ---------- */
+
+  /* Wide luxe container: generous gutters, 88rem cap */
+  .container-luxe {
+    margin-inline: auto;
+    width: 100%;
+    max-width: 88rem;
+    padding-inline: 1.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .container-luxe {
+      padding-inline: 2rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container-luxe {
+      padding-inline: 3rem;
+    }
+  }
+
+  /* Narrow editorial container for product / story */
+  .container-narrow {
+    margin-inline: auto;
+    width: 100%;
+    max-width: 46rem;
+    padding-inline: 1.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .container-narrow {
+      padding-inline: 2rem;
+    }
+  }
+
+  /* Section rhythm: airy, scales with viewport */
+  .section {
+    padding-block: clamp(3.5rem, 8vw, 7rem);
+  }
+
+  .section-tight {
+    padding-block: clamp(2rem, 5vw, 4rem);
+  }
+
+  /* ---------- Typography ---------- */
+
+  .display-hero {
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 1.04;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+    font-size: clamp(2.75rem, 6vw + 1rem, 5rem);
+  }
+
+  .display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    font-size: clamp(2rem, 4vw + 0.5rem, 3.25rem);
+  }
+
+  .heading-section {
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 1.15;
+    letter-spacing: 0;
+    font-size: clamp(1.5rem, 2.5vw + 0.5rem, 2.125rem);
+  }
+
+  .heading-sub {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    font-size: 1.125rem;
+  }
+
+  .body-luxe {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.65;
+    color: color-mix(in srgb, currentColor 82%, transparent);
+  }
+
+  /* Small uppercase kicker, wide tracking — category / eyebrow */
+  .eyebrow {
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: var(--tracking-eyebrow);
+    text-transform: uppercase;
+  }
+
+  /* ---------- Links ---------- */
+
+  /* Quiet underline link: hairline offset, grows on hover */
+  .link-luxe {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+    text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+    transition:
+      text-decoration-color 200ms ease,
+      opacity 200ms ease;
+  }
+
+  .link-luxe:hover {
+    text-decoration-color: currentColor;
+  }
+
+  /* Nav link: uppercase, tracked, hairline underline reveal */
+  .link-nav {
+    position: relative;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: var(--tracking-nav);
+    text-transform: uppercase;
+    padding-block: 0.5rem;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .link-nav::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0.25rem;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 250ms ease;
+  }
+
+  .link-nav:hover::after,
+  .link-nav[data-active="true"]::after {
+    transform: scaleX(1);
+  }
+
+  /* ---------- Buttons (sharp, rectangular, uppercase) ---------- */
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    min-height: 3rem;
+    padding-inline: 2rem;
+    padding-block: 0.875rem;
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: var(--tracking-button);
+    text-transform: uppercase;
+    line-height: 1;
+    border: 1px solid transparent;
+    border-radius: var(--radius-luxe);
+    cursor: pointer;
+    transition:
+      background-color 200ms ease,
+      color 200ms ease,
+      border-color 200ms ease,
+      opacity 200ms ease;
+    user-select: none;
+    white-space: nowrap;
+  }
+
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  /* Solid ink — primary purchase / CTA */
+  .btn-primary {
+    background: var(--color-ink);
+    border-color: var(--color-ink);
+    color: var(--color-ivory);
+  }
+
+  .btn-primary:hover {
+    background: var(--color-espresso);
+    border-color: var(--color-espresso);
+  }
+
+  /* Outline — secondary, on light */
+  .btn-secondary {
+    background: transparent;
+    border-color: var(--color-ink);
+    color: var(--color-ink);
+  }
+
+  .btn-secondary:hover {
+    background: var(--color-ink);
+    color: var(--color-ivory);
+  }
+
+  /* Ghost — quiet, underline-style button for editorial */
+  .btn-ghost {
+    min-height: 2.5rem;
+    padding-inline: 0.25rem;
+    border-color: transparent;
+    border-bottom: 1px solid var(--color-line-dark);
+    border-radius: 0;
+    padding-block: 0.5rem;
+  }
+
+  .btn-ghost:hover {
+    opacity: 0.65;
+  }
+
+  /* Light — for dark / forest / imagery sections */
+  .btn-light {
+    background: var(--color-ivory);
+    border-color: var(--color-ivory);
+    color: var(--color-ink);
+  }
+
+  .btn-light:hover {
+    background: var(--color-cream);
+    border-color: var(--color-cream);
+  }
+
+  .btn-outline-light {
+    background: transparent;
+    border-color: color-mix(in srgb, var(--color-ivory) 55%, transparent);
+    color: var(--color-ivory);
+  }
+
+  .btn-outline-light:hover {
+    border-color: var(--color-ivory);
+    background: color-mix(in srgb, var(--color-ivory) 10%, transparent);
+  }
+
+  /* ---------- Borders / dividers / surfaces ---------- */
+
+  .hairline {
+    border: 1px solid var(--color-line);
+  }
+
+  .hairline-t {
+    border-top: 1px solid var(--color-line);
+  }
+
+  .hairline-b {
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  .hairline-x {
+    border-left: 1px solid var(--color-line);
+    border-right: 1px solid var(--color-line);
+  }
+
+  .divider-luxe {
+    height: 1px;
+    width: 100%;
+    background: var(--color-line);
+    border: 0;
+  }
+
+  /* Heritage accent rule: thin double-line with center gap */
+  .rule-double {
+    border-top: 1px solid var(--color-line);
+    position: relative;
+  }
+
+  .rule-double::after {
+    content: "";
+    display: block;
+    border-top: 1px solid var(--color-line);
+    margin-top: 3px;
+  }
+
+  /* Quiet product ground — no shadow, hairline only */
+  .surface-quiet {
+    background: var(--color-fog);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-luxe);
+  }
+
+  .surface-card {
+    background: var(--color-canvas);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-luxe);
+  }
+
+  /* ---------- Responsive primitives ---------- */
+
+  /* Product listing: 2-col mobile -> 3-col md -> 4-col lg, hairline dividers */
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--color-line);
+    border: 1px solid var(--color-line);
+  }
+
+  .product-grid > * {
+    background: var(--color-canvas);
+  }
+
+  @media (min-width: 768px) {
+    .product-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .product-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  /* Editorial split: stacked mobile -> 2-col desktop */
+  .editorial-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(2rem, 5vw, 4.5rem);
+    align-items: center;
+  }
+
+  @media (min-width: 1024px) {
+    .editorial-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  /* Centered product card body */
+  .product-card-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.375rem;
+    text-align: center;
+    padding: 1.25rem 1rem 1.5rem;
+  }
+
+  .product-card-name {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+  }
+
+  .product-card-price {
+    font-size: 0.8125rem;
+    font-weight: 400;
+    color: var(--color-smoke);
+    letter-spacing: 0.02em;
+  }
+
+  /* Image frame: fixed aspect, quiet ground, no radius */
+  .img-frame {
+    position: relative;
+    overflow: hidden;
+    background: var(--color-fog);
+    aspect-ratio: 3 / 4;
+    border-radius: var(--radius-luxe);
+  }
+
+  .img-frame-square {
+    aspect-ratio: 1 / 1;
+  }
+
+  .img-frame-wide {
+    aspect-ratio: 16 / 9;
+  }
+}
