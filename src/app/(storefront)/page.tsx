@@ -67,7 +67,7 @@ export default async function Home() {
         />
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-black/10"
+          className="absolute inset-0 bg-linear-to-t from-black/65 via-black/20 to-black/10"
         />
         <div className="container-luxe relative pt-24 pb-14 sm:pb-20">
           <div className="max-w-2xl">
@@ -284,7 +284,7 @@ export default async function Home() {
         />
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-gradient-to-b from-forest/40 via-forest/60 to-forest/80"
+          className="absolute inset-0 bg-linear-to-b from-forest/40 via-forest/60 to-forest/80"
         />
         <div className="container-narrow relative section text-center">
           <p className="eyebrow text-gold">04 — Atelier, Est. 1921</p>
