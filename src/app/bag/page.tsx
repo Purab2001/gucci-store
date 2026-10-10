@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { BagLine } from "@/components/bag/BagLine";
+import { CheckoutButton } from "@/components/bag/CheckoutButton";
 import { GuestBagView } from "@/components/bag/GuestBagView";
+import { SummaryTotals } from "@/components/bag/SummaryTotals";
 import { getBagAction } from "@/lib/cart-actions";
-import { formatCents } from "@/lib/format";
 import { getSessionUser } from "@/lib/session";
 
 export const metadata: Metadata = {
@@ -76,23 +77,23 @@ export default async function BagPage() {
               className="border border-line bg-ivory px-7 py-8 sm:px-9 lg:sticky lg:top-8"
             >
               <p className="eyebrow text-brass">Summary</p>
-              <dl className="mt-6 divide-y divide-line border-y border-line">
-                <div className="flex items-baseline justify-between gap-6 py-3">
-                  <dt className="eyebrow shrink-0 text-smoke">Subtotal</dt>
-                  <dd className="text-right text-base font-medium text-ink">
-                    {formatCents(bag.subtotalCents)}
-                  </dd>
-                </div>
-                <div className="flex items-baseline justify-between gap-6 py-3">
-                  <dt className="eyebrow shrink-0 text-smoke">Shipping</dt>
-                  <dd className="text-right text-sm text-ink">Complimentary</dd>
-                </div>
-              </dl>
+              <div className="mt-6">
+                <SummaryTotals
+                  count={bag.count}
+                  subtotalCents={bag.subtotalCents}
+                />
+              </div>
               <p className="mt-6 text-xs leading-relaxed text-stone">
                 Subtotal follows current catalogue pricing. Complimentary
                 shipping and 30-day returns on every order.
               </p>
-              <Link href="/shop" className="btn btn-secondary mt-6 w-full">
+              <div className="mt-6">
+                <CheckoutButton />
+                <p className="mt-3 text-center text-xs leading-relaxed text-smoke">
+                  Secure payment via Stripe — review everything before you pay.
+                </p>
+              </div>
+              <Link href="/shop" className="btn btn-secondary mt-3 w-full">
                 Continue shopping
               </Link>
             </aside>

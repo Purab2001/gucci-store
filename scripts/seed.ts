@@ -1,7 +1,7 @@
 import "dotenv/config";
 
 import { db } from "../src/db";
-import { cartItems, carts, categories, products } from "../src/db/schema";
+import { cartItems, carts, categories, orderItems, orders, products, stripeEvents } from "../src/db/schema";
 
 function img(id: string, w = 1200): string {
   return `https://images.unsplash.com/${id}?q=80&w=${w}&auto=format&fit=crop`;
@@ -96,8 +96,12 @@ const PRODUCT_SEED: SeedProduct[] = [
 ];
 
 async function main() {
-  // Idempotent: clear in FK order (items -> carts -> products -> categories)
-  // so re-seeding never orphans empty cart rows.
+  // Idempotent: clear in FK order (webhook ledger -> order lines -> orders ->
+  // bag lines -> carts -> products -> categories) so re-seeding never orphans
+  // rows or trips the order_items -> products restrict FK.
+  await db.delete(stripeEvents);
+  await db.delete(orderItems);
+  await db.delete(orders);
   await db.delete(cartItems);
   await db.delete(carts);
   await db.delete(products);

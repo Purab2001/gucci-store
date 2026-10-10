@@ -29,6 +29,13 @@
       "when": 1791624862236,
       "tag": "0003_chief_puma",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791633347604,
+      "tag": "0004_shiny_inhumans",
+      "breakpoints": true
     }
   ]
 }

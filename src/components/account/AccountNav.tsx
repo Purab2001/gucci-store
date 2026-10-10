@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation";
 export function AccountNav({ role }: { role?: string }) {
   const pathname = usePathname();
   const overviewActive = pathname === "/account";
+  const ordersActive = (pathname ?? "").startsWith("/account/orders");
 
   return (
     <nav
@@ -27,6 +28,16 @@ export function AccountNav({ role }: { role?: string }) {
             aria-current={overviewActive ? "page" : undefined}
           >
             Overview
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/account/orders"
+            className="link-nav"
+            data-active={ordersActive || undefined}
+            aria-current={ordersActive ? "page" : undefined}
+          >
+            Orders
           </Link>
         </li>
         {role === "admin" && (

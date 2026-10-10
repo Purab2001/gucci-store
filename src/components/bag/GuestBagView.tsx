@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, CircleAlert, Minus, Plus } from "lucide-react";
 import { useGuestBag } from "@/components/bag/CartProvider";
+import { SummaryTotals } from "@/components/bag/SummaryTotals";
 import type { BagItem } from "@/lib/cart-types";
 import { formatCents } from "@/lib/format";
 
@@ -199,18 +200,12 @@ export function GuestBagView() {
             className="border border-line bg-ivory px-7 py-8 sm:px-9 lg:sticky lg:top-8"
           >
             <p className="eyebrow text-brass">Summary</p>
-            <dl className="mt-6 divide-y divide-line border-y border-line">
-              <div className="flex items-baseline justify-between gap-6 py-3">
-                <dt className="eyebrow shrink-0 text-smoke">Subtotal</dt>
-                <dd className="text-right text-base font-medium text-ink">
-                  {formatCents(preview.subtotalCents)}
-                </dd>
-              </div>
-              <div className="flex items-baseline justify-between gap-6 py-3">
-                <dt className="eyebrow shrink-0 text-smoke">Shipping</dt>
-                <dd className="text-right text-sm text-ink">Complimentary</dd>
-              </div>
-            </dl>
+            <div className="mt-6">
+              <SummaryTotals
+                count={preview.count}
+                subtotalCents={preview.subtotalCents}
+              />
+            </div>
             <p className="mt-6 text-xs leading-relaxed text-stone">
               Subtotal follows current catalogue pricing. Complimentary
               shipping and 30-day returns on every order.
@@ -219,7 +214,13 @@ export function GuestBagView() {
               <CircleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               Sign in at checkout to complete your order.
             </p>
-            <Link href="/shop" className="btn btn-secondary mt-6 w-full">
+            <Link
+              href="/sign-in?callbackURL=%2Fbag"
+              className="btn btn-primary mt-6 w-full"
+            >
+              Sign in to check out
+            </Link>
+            <Link href="/shop" className="btn btn-secondary mt-3 w-full">
               Continue shopping
             </Link>
           </aside>

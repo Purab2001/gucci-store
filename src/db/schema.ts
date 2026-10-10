@@ -11,7 +11,11 @@ import {
 import { relations } from "drizzle-orm";
 
 // Catalogue: categories + products (+ stock as a column).
-// Bag: carts + cart_items (signed-in only, one cart per user).
+// Bag: carts + cart_items (signed-in only, one cart per user; guests keep a
+// localStorage bag resolved against live prices — nothing to merge on sign-in).
+// Orders: orders + order_items (one row per checkout attempt, signed-in only)
+// + stripe_events (webhook idempotency ledger). Stripe-hosted Checkout —
+// only the signed webhook writes paid/failed/expired state.
 
 export const categories = pgTable("categories", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -164,8 +168,9 @@ export const accountRelations = relations(account, ({ one }) => ({
 export type UserRow = typeof user.$inferSelect;
 
 // ---------------------------------------------------------------------------
-// Bag (signed-in only). One cart per user (unique user_id), so there is no
-// guest bag and nothing to merge on sign-in. cart_items stores no price —
+// Bag (signed-in only). One cart per user (unique user_id), so there is
+// nothing to merge on sign-in — the guest bag lives in localStorage
+// client-side. cart_items stores no price —
 // amounts are always read live from products.price_cents.
 // ---------------------------------------------------------------------------
 
@@ -232,3 +237,114 @@ export const cartItemsRelations = relations(cartItems, ({ one }) => ({
 
 export type CartRow = typeof carts.$inferSelect;
 export type CartItemRow = typeof cartItems.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Orders (Stripe-hosted Checkout, sign-in only).
+// One row per checkout attempt, owned by the signed-in customer
+// (user_id FK, like carts). Status starts 'pending'; only a Stripe-signed
+// webhook may later move it to 'paid' / 'expired' / 'failed' / 'canceled' —
+// never the success page and never the browser. order_items snapshots the
+// display columns + unit price at session-creation time so receipts survive
+// later catalogue edits; the bag keeps reading live products.price_cents.
+// stripe_events is the webhook idempotency ledger (one row per evt_...).
+// ---------------------------------------------------------------------------
+
+/** Lifecycle of an order row. Only the webhook leaves 'pending'. */
+export type OrderStatus = "pending" | "paid" | "expired" | "failed" | "canceled";
+
+export const orders = pgTable(
+  "orders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    // Plain text (like user.role): the webhook owns the transitions.
+    status: text("status").notNull().default("pending"),
+    // Snapshot of the bag subtotal at session-creation time, in whole cents.
+    subtotalCents: integer("subtotal_cents").notNull(),
+    currency: text("currency").notNull().default("usd"),
+    // Webhook lookup key: cs_... Unique so a retried delivery resolves to
+    // the same row instead of creating a duplicate order.
+    stripeSessionId: text("stripe_session_id").notNull().unique(),
+    stripePaymentIntentId: text("stripe_payment_intent_id"),
+    stripeCustomerId: text("stripe_customer_id"),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("orders_user_id_idx").on(table.userId),
+    index("orders_status_idx").on(table.status),
+  ],
+);
+
+export const orderItems = pgTable(
+  "order_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    // Restrict (not cascade): catalogue rows with order history cannot be
+    // deleted — deactivate via is_active instead so receipts stay intact.
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "restrict" }),
+    // Snapshots at session-creation time (never re-read for receipts).
+    productSlug: text("product_slug").notNull(),
+    productName: text("product_name").notNull(),
+    productImageUrl: text("product_image_url").notNull(),
+    unitPriceCents: integer("unit_price_cents").notNull(),
+    quantity: integer("quantity").notNull().default(1),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("order_items_order_id_idx").on(table.orderId),
+    // One line per product per order, mirroring cart_items.
+    uniqueIndex("order_items_order_product_idx").on(
+      table.orderId,
+      table.productId,
+    ),
+  ],
+);
+
+export const stripeEvents = pgTable("stripe_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  // evt_... Unique so concurrent/redelivered webhooks insert once.
+  eventId: text("event_id").notNull().unique(),
+  type: text("type").notNull(),
+  receivedAt: timestamp("received_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const ordersRelations = relations(orders, ({ many, one }) => ({
+  items: many(orderItems),
+  user: one(user, {
+    fields: [orders.userId],
+    references: [user.id],
+  }),
+}));
+
+export const orderItemsRelations = relations(orderItems, ({ one }) => ({
+  order: one(orders, {
+    fields: [orderItems.orderId],
+    references: [orders.id],
+  }),
+  product: one(products, {
+    fields: [orderItems.productId],
+    references: [products.id],
+  }),
+}));
+
+export type OrderRow = typeof orders.$inferSelect;
+export type OrderItemRow = typeof orderItems.$inferSelect;
+export type StripeEventRow = typeof stripeEvents.$inferSelect;
