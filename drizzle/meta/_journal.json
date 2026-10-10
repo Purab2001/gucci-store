@@ -36,6 +36,20 @@
       "when": 1791633347604,
       "tag": "0004_shiny_inhumans",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791648698853,
+      "tag": "0005_unique_living_lightning",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791649198060,
+      "tag": "0006_normal_whistler",
+      "breakpoints": true
     }
   ]
 }

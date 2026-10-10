@@ -1,0 +1,1 @@
+ALTER TABLE "products" ADD CONSTRAINT "products_stock_quantity_nonnegative" CHECK ("products"."stock_quantity" >= 0);

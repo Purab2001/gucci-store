@@ -13,10 +13,26 @@ import { formatCents } from "@/lib/format";
 
 /**
  * One bag line: packshot, live unit price, quantity stepper, line total,
- * remove. All writes go through server actions (stock-clamped there);
- * the page re-renders from revalidatePath("/bag").
+ * remove. Mutations are injected so the same row serves the signed-in
+ * (server-action) bag and the guest (context) bag: defaults write through
+ * server actions (stock-clamped there, page re-renders from
+ * revalidatePath("/bag")); guests pass context-backed handlers instead.
  */
-export function BagLine({ item }: { item: BagItem }) {
+export function BagLine({
+  item,
+  onQuantity = (productId, next) =>
+    updateBagQuantityAction(productId, next),
+  onRemove = (productId) => removeFromBagAction(productId),
+}: {
+  item: BagItem;
+  onQuantity?: (
+    productId: string,
+    next: number,
+  ) => Promise<{ ok: boolean; message?: string }>;
+  onRemove?: (
+    productId: string,
+  ) => Promise<{ ok: boolean; message?: string }>;
+}) {
   const [pending, setPending] = useState<"dec" | "inc" | "remove" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,7 +79,7 @@ export function BagLine({ item }: { item: BagItem }) {
           <button
             type="button"
             disabled={pending !== null}
-            onClick={() => run("remove", () => removeFromBagAction(item.productId))}
+            onClick={() => run("remove", () => onRemove(item.productId))}
             className="link-luxe mt-2 self-start text-sm disabled:opacity-40"
           >
             {pending === "remove" ? "Removing…" : "Remove"}
@@ -125,9 +141,7 @@ export function BagLine({ item }: { item: BagItem }) {
               aria-label="Decrease quantity"
               disabled={busy}
               onClick={() =>
-                run("dec", () =>
-                  updateBagQuantityAction(item.productId, item.quantity - 1),
-                )
+                run("dec", () => onQuantity(item.productId, item.quantity - 1))
               }
               className="flex h-10 w-10 items-center justify-center transition-colors hover:bg-ivory disabled:opacity-40"
             >
@@ -150,9 +164,7 @@ export function BagLine({ item }: { item: BagItem }) {
               disabled={busy || atCap}
               title={atCap ? `Only ${item.stockQuantity} available` : undefined}
               onClick={() =>
-                run("inc", () =>
-                  updateBagQuantityAction(item.productId, item.quantity + 1),
-                )
+                run("inc", () => onQuantity(item.productId, item.quantity + 1))
               }
               className="flex h-10 w-10 items-center justify-center transition-colors hover:bg-ivory disabled:opacity-40"
             >
@@ -166,7 +178,7 @@ export function BagLine({ item }: { item: BagItem }) {
           <button
             type="button"
             disabled={busy}
-            onClick={() => run("remove", () => removeFromBagAction(item.productId))}
+            onClick={() => run("remove", () => onRemove(item.productId))}
             className="link-luxe text-sm disabled:opacity-40"
           >
             {pending === "remove" ? "Removing…" : "Remove"}

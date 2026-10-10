@@ -14,12 +14,15 @@ import {
   getGuestBagPreviewAction,
   type GuestBagEntry,
 } from "@/lib/cart-actions";
+import {
+  MAX_GUEST_LINES as MAX_LINES,
+  MAX_GUEST_QUANTITY as MAX_QUANTITY,
+  sanitizeGuestEntries as sanitize,
+} from "@/lib/guest-bag";
 import { EMPTY_BAG, type Bag } from "@/lib/cart-types";
 
 const STORAGE_KEY = "gucci-store:guest-bag:v1";
 const GUEST_BAG_EVENT = "gucci-store:guest-bag:change";
-const MAX_LINES = 100;
-const MAX_QUANTITY = 99;
 
 interface GuestBagContextValue {
   /** Raw slug + quantity entries as persisted to localStorage. */
@@ -33,25 +36,6 @@ interface GuestBagContextValue {
 }
 
 const GuestBagContext = createContext<GuestBagContextValue | null>(null);
-
-function sanitize(raw: unknown): GuestBagEntry[] {
-  if (!Array.isArray(raw)) return [];
-  const entries: GuestBagEntry[] = [];
-  const seen = new Set<string>();
-  for (const item of raw.slice(0, MAX_LINES)) {
-    if (typeof item !== "object" || item === null) continue;
-    const { slug, quantity } = item as { slug?: unknown; quantity?: unknown };
-    if (typeof slug !== "string" || slug.length < 1 || slug.length > 128) {
-      continue;
-    }
-    const n = typeof quantity === "number" ? Math.floor(quantity) : NaN;
-    if (!Number.isFinite(n) || n < 1) continue;
-    if (seen.has(slug)) continue;
-    seen.add(slug);
-    entries.push({ slug, quantity: Math.min(n, MAX_QUANTITY) });
-  }
-  return entries;
-}
 
 const EMPTY_ENTRIES: GuestBagEntry[] = [];
 

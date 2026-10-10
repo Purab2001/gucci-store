@@ -22,9 +22,9 @@ export default function ShopPage({
         <p className="eyebrow text-brass">Shop — N.02</p>
         <h1 className="display mt-3 max-w-2xl">All pieces, considered</h1>
         <p className="body-luxe mt-4 max-w-md">
-          Sixteen quiet essentials in leather, gold and dark acetate.
-          Search, filter by family, sort with restraint — the imagery
-          does the rest.
+          Considered essentials in leather, gold and dark acetate. Search,
+          filter by family, sort with restraint — the imagery does the
+          rest.
         </p>
       </section>
 

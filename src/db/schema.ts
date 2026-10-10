@@ -1,5 +1,6 @@
 import {
   boolean,
+  check,
   index,
   integer,
   pgTable,
@@ -8,7 +9,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // Catalogue: categories + products (+ stock as a column).
 // Bag: carts + cart_items (signed-in only, one cart per user; guests keep a
@@ -28,29 +29,40 @@ export const categories = pgTable("categories", {
     .notNull(),
 });
 
-export const products = pgTable("products", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(),
-  slug: text("slug").notNull().unique(),
-  description: text("description"),
-  material: text("material"),
-  categoryId: uuid("category_id")
-    .notNull()
-    .references(() => categories.id),
-  // Money is integer cents. Only mapProduct() divides by 100.
-  priceCents: integer("price_cents").notNull(),
-  // Single packshot for v1. Galleries later = new product_images table.
-  imageUrl: text("image_url").notNull(),
-  tag: text("tag"),
-  // Stock is a quantity, never a stored status. UI states derive in stock.ts.
-  stockQuantity: integer("stock_quantity").notNull().default(0),
-  // Replaces the hardcoded featuredProducts list on the homepage.
-  isFeatured: boolean("is_featured").notNull().default(false),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-});
+export const products = pgTable(
+  "products",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull().unique(),
+    description: text("description"),
+    material: text("material"),
+    categoryId: uuid("category_id")
+      .notNull()
+      .references(() => categories.id),
+    // Money is integer cents. Only mapProduct() divides by 100.
+    priceCents: integer("price_cents").notNull(),
+    // Single packshot for v1. Galleries later = new product_images table.
+    imageUrl: text("image_url").notNull(),
+    tag: text("tag"),
+    // Stock is a quantity, never a stored status. UI states derive in stock.ts.
+    stockQuantity: integer("stock_quantity").notNull().default(0),
+    // Replaces the hardcoded featuredProducts list on the homepage.
+    isFeatured: boolean("is_featured").notNull().default(false),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    // Defense in depth: app guards + webhook `gte` guard keep stock >= 0,
+    // but only a CHECK makes it invariant against direct SQL / future writers.
+    check(
+      "products_stock_quantity_nonnegative",
+      sql`${table.stockQuantity} >= 0`,
+    ),
+  ],
+);
 
 export const categoryRelations = relations(categories, ({ many }) => ({
   products: many(products),
@@ -281,6 +293,14 @@ export const orders = pgTable(
   (table) => [
     index("orders_user_id_idx").on(table.userId),
     index("orders_status_idx").on(table.status),
+    // One live checkout per customer: concurrent createCheckoutSessionAction
+    // calls race past the supersede SELECT, so the database serializes them
+    // here — the loser fails closed on INSERT instead of minting a second
+    // payable session. Terminal states (paid/failed/expired/canceled) are
+    // unaffected, so history keeps every attempt.
+    uniqueIndex("orders_user_pending_unique")
+      .on(table.userId)
+      .where(sql`${table.status} = 'pending'`),
   ],
 );
 

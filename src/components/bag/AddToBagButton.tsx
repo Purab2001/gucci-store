@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Check, CircleAlert, LoaderCircle } from "lucide-react";
-import { addToBagAction } from "@/lib/cart-actions";
+import { addToBagAction, getGuestBagPreviewAction } from "@/lib/cart-actions";
 import { useSession } from "@/lib/auth-client";
 import { useGuestBag } from "@/components/bag/CartProvider";
 
@@ -42,8 +42,38 @@ export function AddToBagButton({
     // Session still resolving: hold the button rather than misrouting the add.
     if (sessionPending) return;
     if (!session?.user) {
-      guest.add(slug, 1);
-      setStatus({ kind: "added", notice: null });
+      // Guest bag lives in localStorage, so verify against live catalogue
+      // before claiming success — same stock gate the server bag enforces.
+      // Preview is authoritative for price/stock; localStorage holds identity only.
+      setStatus({ kind: "pending" });
+      try {
+        const existing =
+          guest.entries.find((e) => e.slug === slug)?.quantity ?? 0;
+        const preview = await getGuestBagPreviewAction([
+          { slug, quantity: existing + 1 },
+        ]);
+        const line = preview.items.find((item) => item.slug === slug);
+        if (!line || !line.available) {
+          setStatus({
+            kind: "error",
+            message: "This piece is out of stock.",
+          });
+          return;
+        }
+        guest.add(slug, 1);
+        setStatus({
+          kind: "added",
+          notice:
+            line.quantity < existing + 1
+              ? `Only ${line.stockQuantity} available — quantity adjusted.`
+              : null,
+        });
+      } catch {
+        // Preview failed (offline?): still add optimistically; the bag page
+        // preview remains authoritative and will mark unavailable lines there.
+        guest.add(slug, 1);
+        setStatus({ kind: "added", notice: null });
+      }
       return;
     }
     setStatus({ kind: "pending" });

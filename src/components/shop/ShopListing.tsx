@@ -223,7 +223,7 @@ export async function ShopListing({
                   <Link
                     href={shopHref(null, activeSort, activeQuery)}
                     aria-label={`Remove category filter ${activeCategory.name}`}
-                    className="inline-flex items-center gap-2 border border-line bg-canvas px-3 py-1.5 text-[0.6875rem] font-semibold tracking-[0.22em] text-ink uppercase transition-colors hover:border-ink"
+                    className="inline-flex items-center gap-2 border border-line bg-canvas px-3 py-1.5 text-[0.6875rem] font-semibold tracking-eyebrow text-ink uppercase transition-colors hover:border-ink"
                   >
                     {activeCategory.name}
                     <X className="h-3.5 w-3.5" aria-hidden="true" />
@@ -237,7 +237,7 @@ export async function ShopListing({
                       null,
                     )}
                     aria-label={`Remove search filter ${activeQuery}`}
-                    className="inline-flex max-w-full items-center gap-2 border border-line bg-canvas px-3 py-1.5 text-[0.6875rem] font-semibold tracking-[0.22em] text-ink uppercase transition-colors hover:border-ink"
+                    className="inline-flex max-w-full items-center gap-2 border border-line bg-canvas px-3 py-1.5 text-[0.6875rem] font-semibold tracking-eyebrow text-ink uppercase transition-colors hover:border-ink"
                   >
                     <span className="truncate normal-case">
                       &ldquo;{activeQuery}&rdquo;
@@ -256,7 +256,7 @@ export async function ShopListing({
                       activeQuery,
                     )}
                     aria-label={`Remove sort ${activeSortLabel}`}
-                    className="inline-flex items-center gap-2 border border-line bg-canvas px-3 py-1.5 text-[0.6875rem] font-semibold tracking-[0.22em] text-ink uppercase transition-colors hover:border-ink"
+                    className="inline-flex items-center gap-2 border border-line bg-canvas px-3 py-1.5 text-[0.6875rem] font-semibold tracking-eyebrow text-ink uppercase transition-colors hover:border-ink"
                   >
                     {activeSortLabel}
                     <X className="h-3.5 w-3.5" aria-hidden="true" />

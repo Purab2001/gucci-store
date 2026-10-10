@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BagMenu } from "@/components/bag/BagCount";
+import { BagMenu } from "@/components/bag/BagMenu";
 import { PrimaryNav } from "@/components/layout/PrimaryNav";
 import { SessionNav } from "@/components/layout/SessionNav";
 

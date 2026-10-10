@@ -9,6 +9,7 @@ import {
   Headphones,
 } from "lucide-react";
 import { ProductCard } from "@/components/product/ProductCard";
+import { NewsletterForm } from "@/components/layout/NewsletterForm";
 import {
   atelierImage,
   editorialImage,
@@ -182,8 +183,9 @@ export default async function Home() {
               <p className="eyebrow text-brass">02 — Icons of the house</p>
               <h2 className="display mt-3">Carried daily, kept forever</h2>
               <p className="body-luxe mt-4 max-w-md">
-                Eight quiet essentials in leather, gold and dark acetate —
-                sharp shapes, soft hand-feel, no excess hardware.
+                {featuredProducts.length} quiet essentials in leather, gold
+                and dark acetate — sharp shapes, soft hand-feel, no excess
+                hardware.
               </p>
             </div>
             <Link href="/shop" className="link-luxe text-sm">
@@ -199,7 +201,9 @@ export default async function Home() {
 
           <div className="mt-10 flex flex-wrap items-center justify-between gap-6">
             <p className="eyebrow text-smoke">
-              Eight pieces — Leather, gold, acetate
+              {featuredProducts.length}{" "}
+              {featuredProducts.length === 1 ? "piece" : "pieces"} — Leather,
+              gold, acetate
             </p>
             <Link href="/shop" className="btn btn-secondary">
               Explore the edit
@@ -384,29 +388,7 @@ export default async function Home() {
           New arrivals and atelier notes, once a month. No noise —
           unsubscribe anytime.
         </p>
-        <form
-          action="#"
-          className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row"
-        >
-          <label htmlFor="newsletter-email" className="sr-only">
-            Email address
-          </label>
-          <input
-            id="newsletter-email"
-            name="email"
-            type="email"
-            required
-            autoComplete="email"
-            placeholder="Email address"
-            className="h-12 flex-1 border border-line bg-canvas px-4 text-sm text-ink placeholder:text-stone focus:border-ink focus:outline-none"
-          />
-          <button
-            type="submit"
-            className="btn btn-primary w-full sm:w-auto"
-          >
-            Subscribe
-          </button>
-        </form>
+        <NewsletterForm />
         <p className="mt-4 text-xs leading-relaxed text-stone">
           One letter a month. Private, always.
         </p>

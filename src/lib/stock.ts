@@ -7,7 +7,7 @@ export interface StockState {
   dotClass: string;
 }
 
-const LOW_STOCK_THRESHOLD = 3;
+export const LOW_STOCK_THRESHOLD = 3;
 
 /**
  * Derive the UI stock state from a quantity.

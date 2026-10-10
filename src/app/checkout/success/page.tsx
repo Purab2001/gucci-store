@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { OrderMeta } from "@/components/checkout/OrderMeta";
 import { OrderSummary } from "@/components/checkout/OrderSummary";
 import { PendingOrderRefresh } from "@/components/checkout/PendingOrderRefresh";
@@ -39,12 +39,17 @@ export default async function CheckoutSuccessPage({
   const user = await requireUser(
     `/checkout/success?session_id=${encodeURIComponent(sessionId)}`,
   );
+  // Owner scoped in SQL (like getOrderByIdForUser): another customer's row
+  // never leaves the database, and unknown sessions 404 either way.
   const order = await db.query.orders.findFirst({
     // Relational query: keep `with` inline (hoisting breaks inference).
-    where: eq(orders.stripeSessionId, sessionId),
+    where: and(
+      eq(orders.stripeSessionId, sessionId),
+      eq(orders.userId, user.id),
+    ),
     with: { items: true },
   });
-  if (!order || order.userId !== user.id) notFound();
+  if (!order) notFound();
 
   // Best-effort live hint: Stripe may already report paid while the webhook
   // is still travelling. Display-only — fulfilment still waits for it.

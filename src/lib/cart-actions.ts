@@ -13,6 +13,7 @@ import {
 } from "@/lib/cart";
 import type { Bag, BagActionResult } from "@/lib/cart-types";
 import { getSessionUser, requireUser } from "@/lib/session";
+import { sanitizeGuestEntries as asGuestEntries } from "@/lib/guest-bag";
 
 /**
  * Thin auth + revalidation wrappers over the bag data layer. Client
@@ -68,28 +69,6 @@ export async function removeFromBagAction(
 export interface GuestBagEntry {
   slug: string;
   quantity: number;
-}
-
-const MAX_GUEST_LINES = 100;
-const MAX_GUEST_QUANTITY = 99;
-
-function asGuestEntries(raw: unknown): GuestBagEntry[] {
-  if (!Array.isArray(raw)) return [];
-  const entries: GuestBagEntry[] = [];
-  const seen = new Set<string>();
-  for (const item of raw.slice(0, MAX_GUEST_LINES)) {
-    if (typeof item !== "object" || item === null) continue;
-    const { slug, quantity } = item as { slug?: unknown; quantity?: unknown };
-    if (typeof slug !== "string" || slug.length < 1 || slug.length > 128) {
-      continue;
-    }
-    const n = typeof quantity === "number" ? Math.floor(quantity) : NaN;
-    if (!Number.isFinite(n) || n < 1) continue;
-    if (seen.has(slug)) continue;
-    seen.add(slug);
-    entries.push({ slug, quantity: Math.min(n, MAX_GUEST_QUANTITY) });
-  }
-  return entries;
 }
 
 /**

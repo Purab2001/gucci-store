@@ -202,7 +202,7 @@ export default function AboutPage() {
         />
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-gradient-to-b from-forest/40 via-forest/60 to-forest/80"
+          className="absolute inset-0 bg-linear-to-b from-forest/40 via-forest/60 to-forest/80"
         />
         <div className="container-narrow relative section text-center">
           <p className="eyebrow text-gold">03 — Atelier, Est. 1921</p>

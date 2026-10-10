@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   images: {
+    // Keep in sync with ALLOWED_IMAGE_HOSTS in src/lib/images.ts — the
+    // admin form and Stripe Checkout use the same allowlist.
     remotePatterns: [
       {
         protocol: "https",

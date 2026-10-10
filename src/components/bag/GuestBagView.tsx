@@ -1,149 +1,43 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, CircleAlert, Minus, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, CircleAlert } from "lucide-react";
+import { BagLine } from "@/components/bag/BagLine";
 import { useGuestBag } from "@/components/bag/CartProvider";
 import { SummaryTotals } from "@/components/bag/SummaryTotals";
-import type { BagItem } from "@/lib/cart-types";
-import { formatCents } from "@/lib/format";
-
-/**
- * One guest bag line: packshot, live unit price, quantity stepper, line
- * total, remove. Writes go straight to the shared cart context (persisted
- * to localStorage); money and stock always come from the resolved preview,
- * never from the client store.
- */
-function GuestBagLine({
-  item,
-  onQuantity,
-  onRemove,
-}: {
-  item: BagItem;
-  onQuantity: (slug: string, next: number) => void;
-  onRemove: (slug: string) => void;
-}) {
-  if (!item.available) {
-    return (
-      <li className="flex gap-5 px-7 py-6 opacity-70 sm:px-9">
-        <div className="img-frame img-frame-square w-24 shrink-0 sm:w-28">
-          <Image
-            src={item.image}
-            alt=""
-            fill
-            sizes="112px"
-            className="object-cover"
-          />
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <p className="eyebrow text-smoke">No longer available</p>
-          <p className="product-card-name text-left text-ink">{item.name}</p>
-          <button
-            type="button"
-            onClick={() => onRemove(item.slug)}
-            className="link-luxe mt-2 self-start text-sm"
-          >
-            Remove
-          </button>
-        </div>
-      </li>
-    );
-  }
-
-  const atCap = item.quantity >= item.stockQuantity;
-
-  return (
-    <li className="flex gap-5 px-7 py-6 sm:px-9">
-      <Link
-        href={`/shop/${item.slug}`}
-        className="img-frame img-frame-square w-24 shrink-0 sm:w-28"
-        aria-label={item.name}
-      >
-        <Image
-          src={item.image}
-          alt={item.name}
-          fill
-          sizes="112px"
-          className="object-cover"
-        />
-      </Link>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <Link
-              href={`/shop/${item.slug}`}
-              className="product-card-name text-left text-ink decoration-1 underline-offset-4 hover:underline"
-            >
-              {item.name}
-            </Link>
-            <p className="product-card-price mt-1">
-              {formatCents(item.priceCents)} each
-            </p>
-          </div>
-          <p className="shrink-0 text-sm font-medium text-ink">
-            {formatCents(item.priceCents * item.quantity)}
-          </p>
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-          <div
-            role="group"
-            aria-label={`Quantity for ${item.name}`}
-            className="flex items-center border border-line"
-          >
-            <button
-              type="button"
-              aria-label="Decrease quantity"
-              onClick={() => onQuantity(item.slug, item.quantity - 1)}
-              className="flex h-10 w-10 items-center justify-center transition-colors hover:bg-ivory"
-            >
-              <Minus className="h-4 w-4" aria-hidden="true" />
-            </button>
-            <span
-              aria-live="polite"
-              aria-label={`Quantity ${item.quantity}`}
-              className="w-10 text-center text-sm tabular-nums"
-            >
-              {item.quantity}
-            </span>
-            <button
-              type="button"
-              aria-label="Increase quantity"
-              disabled={atCap}
-              title={atCap ? `Only ${item.stockQuantity} available` : undefined}
-              onClick={() => onQuantity(item.slug, item.quantity + 1)}
-              className="flex h-10 w-10 items-center justify-center transition-colors hover:bg-ivory disabled:opacity-40"
-            >
-              <Plus className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </div>
-          <button
-            type="button"
-            onClick={() => onRemove(item.slug)}
-            className="link-luxe text-sm"
-          >
-            Remove
-          </button>
-        </div>
-
-        {atCap && (
-          <p className="mt-2 text-xs leading-relaxed text-smoke">
-            Only {item.stockQuantity} available in the atelier.
-          </p>
-        )}
-      </div>
-    </li>
-  );
-}
 
 /**
  * Logged-out /bag content. Reads the same cart context as the header
  * dropdown, so adds on product pages appear here and in the menu together.
+ * Rows reuse the shared BagLine with context-backed mutations; money and
+ * stock always come from the resolved preview, never from the client store.
  */
 export function GuestBagView() {
   const { entries, preview, previewPending, setQuantity, remove } =
     useGuestBag();
   const unitWord = preview.count === 1 ? "piece" : "pieces";
+
+  async function handleQuantity(productId: string, next: number) {
+    const line = preview.items.find((i) => i.productId === productId);
+    if (!line) {
+      return { ok: false, message: "That piece is no longer in your bag." };
+    }
+    if (next < 1) {
+      remove(line.slug);
+    } else {
+      setQuantity(line.slug, next);
+    }
+    return { ok: true };
+  }
+
+  async function handleRemove(productId: string) {
+    const line = preview.items.find((i) => i.productId === productId);
+    if (!line) {
+      return { ok: false, message: "That piece is no longer in your bag." };
+    }
+    remove(line.slug);
+    return { ok: true };
+  }
 
   return (
     <section className="container-luxe section">
@@ -186,11 +80,11 @@ export function GuestBagView() {
             className="surface-card divide-y divide-line"
           >
             {preview.items.map((item) => (
-              <GuestBagLine
-                key={item.slug}
+              <BagLine
+                key={item.productId}
                 item={item}
-                onQuantity={setQuantity}
-                onRemove={remove}
+                onQuantity={handleQuantity}
+                onRemove={handleRemove}
               />
             ))}
           </ul>

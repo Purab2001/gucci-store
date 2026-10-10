@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { orders, type OrderStatus } from "@/db/schema";
 
@@ -67,14 +67,16 @@ export function orderStatusState(status: string): OrderStatusState {
 }
 
 /**
- * All orders belonging to one customer, newest first, with snapshotted
+ * Customer order history, newest first, with snapshotted
  * lines (for unit counts). Callers pass the session user id — history
- * never reads across accounts.
+ * never reads across accounts. System-superseded `canceled` attempts are
+ * excluded: they were never a customer decision and only clutter the
+ * history (they remain visible in the admin console for audit).
  */
 export async function getOrdersByUserId(userId: string) {
   return db.query.orders.findMany({
     // Relational query: keep `with` inline (hoisting breaks inference).
-    where: eq(orders.userId, userId),
+    where: and(eq(orders.userId, userId), ne(orders.status, "canceled")),
     orderBy: desc(orders.createdAt),
     with: { items: true },
   });

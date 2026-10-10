@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { and, eq, gte, inArray, sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import { db } from "@/db";
@@ -90,6 +91,25 @@ async function fulfilPaidSession(sessionId: string): Promise<void> {
   if (session.payment_status !== "paid") return;
   const paymentIntentId =
     typeof session.payment_intent === "string" ? session.payment_intent : null;
+  if (
+    typeof session.currency === "string" &&
+    session.currency.toLowerCase() !== order.currency.toLowerCase()
+  ) {
+    // Same fail-closed refund path as an amount mismatch: never fulfil when
+    // the charged currency differs from the snapshotted order currency.
+    console.error(
+      `Stripe webhook: currency mismatch for order ${order.id} ` +
+        `(stripe=${session.currency}, order=${order.currency}).`,
+    );
+    if (paymentIntentId) {
+      await stripe.refunds.create(
+        { payment_intent: paymentIntentId },
+        { idempotencyKey: `currency-mismatch-refund-${order.id}` },
+      );
+    }
+    await markFailed(order.id);
+    return;
+  }
   if (session.amount_total !== order.subtotalCents) {
     // Never fulfil on a mismatch. Refund first (idempotent — a redelivery
     // after a crash replays the same refund, never a second one), then fail
@@ -115,11 +135,16 @@ async function fulfilPaidSession(sessionId: string): Promise<void> {
   }
 
   // Final stock revalidation against the live catalogue.
+  const productIds = order.items.map((item) => item.productId);
+  if (productIds.length === 0) {
+    console.error(
+      `Stripe webhook: order ${order.id} has no product ids; failing instead of fulfilling.`,
+    );
+    await markFailed(order.id);
+    return;
+  }
   const live = await db.query.products.findMany({
-    where: inArray(
-      products.id,
-      order.items.map((item) => item.productId),
-    ),
+    where: inArray(products.id, productIds),
     columns: { id: true, stockQuantity: true },
   });
   const stockById = new Map(live.map((p) => [p.id, p.stockQuantity]));
@@ -176,6 +201,17 @@ async function fulfilPaidSession(sessionId: string): Promise<void> {
     if (cart) {
       await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
     }
+    // Stock changed: bust the `"use cache"` catalogue (SWR from a Route
+    // Handler — updateTag is Server Actions only). Failures here must not
+    // fail fulfilment, which already committed.
+    try {
+      revalidateTag("catalogue", "max");
+    } catch (err) {
+      console.error(
+        `Stripe webhook: catalogue revalidation failed for paid order ${order.id}:`,
+        err,
+      );
+    }
   } catch (err) {
     console.error(
       `Stripe webhook: post-payment writes failed for paid order ${order.id} — reconcile manually:`,
@@ -194,6 +230,18 @@ async function markTerminal(
     columns: { id: true, status: true },
   });
   if (!order || order.status !== "pending") return;
+  // Verify against Stripe (same rule as the paid path: the event payload
+  // alone is not trusted). Never mark terminal when Stripe reports the
+  // session paid/complete — the paid path owns that outcome. Retrieve
+  // failures throw so the delivery 500s and Stripe redelivers.
+  const session =
+    await getStripe().checkout.sessions.retrieve(sessionId);
+  if (
+    session.payment_status === "paid" ||
+    session.status === "complete"
+  ) {
+    return;
+  }
   await db
     .update(orders)
     .set({ status })

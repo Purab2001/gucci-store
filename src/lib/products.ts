@@ -1,6 +1,6 @@
 import "server-only";
 
-import { cacheLife } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 import {
   and,
   asc,
@@ -43,6 +43,7 @@ export function mapProduct(
 export async function getFeaturedProducts(): Promise<Product[]> {
   "use cache";
   cacheLife("hours");
+  cacheTag("catalogue");
   const rows = await db.query.products.findMany({
     where: and(eq(products.isFeatured, true), eq(products.isActive, true)),
     with: { category: true },
@@ -56,6 +57,7 @@ export async function getFeaturedProducts(): Promise<Product[]> {
 export async function getNewArrivals(limit = 8): Promise<Product[]> {
   "use cache";
   cacheLife("hours");
+  cacheTag("catalogue");
   const rows = await db.query.products.findMany({
     where: eq(products.isActive, true),
     with: { category: true },
@@ -70,6 +72,7 @@ export async function getNewArrivals(limit = 8): Promise<Product[]> {
 export async function getCollections(): Promise<Collection[]> {
   "use cache";
   cacheLife("hours");
+  cacheTag("catalogue");
   const rows = await db
     .select()
     .from(categories)
@@ -89,6 +92,7 @@ export async function getShopCategories(): Promise<
 > {
   "use cache";
   cacheLife("hours");
+  cacheTag("catalogue");
   const rows = await db
     .select({
       name: categories.name,
@@ -113,6 +117,7 @@ export async function getCollectionBySlug(
 ): Promise<Collection | undefined> {
   "use cache";
   cacheLife("hours");
+  cacheTag("catalogue", `collection-${slug}`);
   const row = await db.query.categories.findFirst({
     where: eq(categories.slug, slug),
   });
@@ -129,6 +134,7 @@ export async function getCollectionBySlug(
 export async function getAllCollectionSlugs(): Promise<string[]> {
   "use cache";
   cacheLife("hours");
+  cacheTag("catalogue");
   const rows = await db
     .select({ slug: categories.slug })
     .from(categories)
@@ -140,6 +146,7 @@ export async function getAllCollectionSlugs(): Promise<string[]> {
 export async function getActiveProductCount(): Promise<number> {
   "use cache";
   cacheLife("hours");
+  cacheTag("catalogue");
   const rows = await db
     .select({ count: sql<number>`count(*)` })
     .from(products)
@@ -154,6 +161,7 @@ export async function getCatalogProducts(opts?: {
 }): Promise<Product[]> {
   "use cache";
   cacheLife("hours");
+  cacheTag("catalogue");
   const { categorySlug = null, sort = "featured", query = null } = opts ?? {};
 
   const orderBy =
@@ -227,6 +235,7 @@ export async function getProductBySlug(
 ): Promise<Product | undefined> {
   "use cache";
   cacheLife("hours");
+  cacheTag("catalogue", `product-${slug}`);
   const row = await db.query.products.findFirst({
     where: and(eq(products.slug, slug), eq(products.isActive, true)),
     with: { category: true },
@@ -238,6 +247,7 @@ export async function getProductBySlug(
 export async function getAllProductSlugs(): Promise<string[]> {
   "use cache";
   cacheLife("hours");
+  cacheTag("catalogue");
   const rows = await db
     .select({ slug: products.slug })
     .from(products)
@@ -251,6 +261,7 @@ export async function getRelatedProducts(
 ): Promise<Product[]> {
   "use cache";
   cacheLife("hours");
+  cacheTag("catalogue", `product-${product.slug}`);
   // Bounded: same-category first, then fill from the rest. Never pulls the
   // whole catalogue into JS.
   const cat = await db.query.categories.findFirst({

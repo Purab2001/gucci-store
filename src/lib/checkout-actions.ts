@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { orderItems, orders } from "@/db/schema";
 import { getBagByUserId } from "@/lib/cart";
+import { isStripeImageUrl } from "@/lib/images";
 import { requireUser } from "@/lib/session";
 import { getStripe } from "@/lib/stripe";
 
@@ -33,14 +34,21 @@ function appOrigin(): string {
   return url.replace(/\/$/, "");
 }
 
+function isUniqueViolation(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  return /duplicate|unique|23505/i.test(message);
+}
+
 /**
  * Starts Stripe checkout for the signed-in bag. Amounts are rebuilt from a
  * fresh server-side bag read — the browser supplies no price, total, or
  * line item. Stock is revalidated here (add-to-bag caps and the webhook
  * recheck are the other two gates). Prior `pending` attempts are superseded
- * first (their sessions are verified + expired), so two sessions can never
- * both be payable. Creates the Stripe session, then writes a `pending` order
- * + snapshotted items; only the signed webhook may later mark it `paid`.
+ * first (their sessions are verified + expired); exactly-concurrent attempts
+ * are serialized by the `orders_user_pending_unique` partial index, so at most
+ * one `pending` order per customer survives. Creates the Stripe session, then
+ * writes a `pending` order + snapshotted items; only the signed webhook may
+ * later mark it `paid`.
  */
 export async function createCheckoutSessionAction(): Promise<CheckoutSessionResult> {
   const user = await requireUser("/bag");
@@ -162,7 +170,12 @@ export async function createCheckoutSessionAction(): Promise<CheckoutSessionResu
           unit_amount: item.priceCents,
           product_data: {
             name: item.name,
-            images: [item.image],
+            // Stripe fetches this URL at session creation: only send
+            // allowlisted https URLs (see lib/images.ts), otherwise omit
+            // rather than failing the whole checkout on one image.
+            ...(isStripeImageUrl(item.image)
+              ? { images: [item.image] }
+              : {}),
             metadata: { productId: item.productId, slug: item.slug },
           },
         },
@@ -200,6 +213,21 @@ export async function createCheckoutSessionAction(): Promise<CheckoutSessionResu
       stripeSessionId: session.id,
     });
   } catch (err) {
+    // Race loser: another attempt became the live `pending` order first
+    // (partial unique index). Our Stripe session has no order row and its URL
+    // was never returned, so expire it best-effort and fail closed — the next
+    // attempt supersedes cleanly. Expiry failure is harmless: it expires unpaid.
+    if (isUniqueViolation(err)) {
+      try {
+        await getStripe().checkout.sessions.expire(session.id);
+      } catch (expireErr) {
+        console.error("Race-loser session expiry failed:", expireErr);
+      }
+      return {
+        ok: false,
+        message: "A checkout is already starting. Please try again.",
+      };
+    }
     console.error("Pending order insert failed:", err);
     return {
       ok: false,
