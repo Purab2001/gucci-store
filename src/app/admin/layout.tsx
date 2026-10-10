@@ -1,4 +1,4 @@
-import { AdminNav } from "@/components/admin/AdminNav";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { requireAdmin } from "@/lib/session";
 
 // Auth gate reads the session at request time, so this segment cannot
@@ -18,18 +18,11 @@ export default async function AdminLayout({
   const admin = await requireAdmin("/admin");
 
   return (
-    <main className="flex flex-1 flex-col bg-canvas text-ink">
-      <section className="container-luxe section">
-        <p className="eyebrow text-brass">Admin</p>
-        <h1 className="display mt-3">Atelier console</h1>
-        <p className="body-luxe mt-4 max-w-md text-sm">
-          Signed in as {admin.email}
-        </p>
-        <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-14">
-          <AdminNav />
-          <div className="min-w-0">{children}</div>
-        </div>
-      </section>
-    </main>
+    <div className="flex flex-1 flex-col bg-canvas text-ink lg:flex-row">
+      <AdminSidebar email={admin.email} />
+      <main className="min-w-0 flex-1 px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
+        <div className="mx-auto w-full max-w-5xl">{children}</div>
+      </main>
+    </div>
   );
 }

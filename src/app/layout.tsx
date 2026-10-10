@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
-import { Footer } from "@/components/layout/Footer";
-import { Header } from "@/components/layout/Header";
-import { CartProvider } from "@/components/bag/CartProvider";
 import "./globals.css";
 
 const displaySerif = Cormorant_Garamond({
@@ -30,11 +27,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${displaySerif.variable} ${sansBody.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-canvas font-sans text-ink">
-        <CartProvider>
-          <Header />
-          <div className="flex flex-1 flex-col">{children}</div>
-          <Footer />
-        </CartProvider>
+        <div className="flex flex-1 flex-col">{children}</div>
       </body>
     </html>
   );

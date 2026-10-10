@@ -53,19 +53,19 @@ export default async function AdminOrdersPage() {
           <table className="w-full min-w-[52rem] text-left text-sm">
             <thead>
               <tr className="border-b border-line">
-                <th scope="col" className="eyebrow px-5 py-4 text-smoke">
+                <th scope="col" className="eyebrow px-4 py-3 text-smoke">
                   Order
                 </th>
-                <th scope="col" className="eyebrow px-5 py-4 text-smoke">
+                <th scope="col" className="eyebrow px-4 py-3 text-smoke">
                   Customer
                 </th>
                 <th
                   scope="col"
-                  className="eyebrow px-5 py-4 text-right text-smoke"
+                  className="eyebrow px-4 py-3 text-right text-smoke"
                 >
                   Total
                 </th>
-                <th scope="col" className="eyebrow px-5 py-4 text-smoke">
+                <th scope="col" className="eyebrow px-4 py-3 text-smoke">
                   Status
                 </th>
                 <th scope="col" className="sr-only">
@@ -79,7 +79,7 @@ export default async function AdminOrdersPage() {
                 const units = order.items.reduce((n, i) => n + i.quantity, 0);
                 return (
                   <tr key={order.id}>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3">
                       <p className="font-medium text-ink">
                         {orderReference(order.id)}
                       </p>
@@ -88,13 +88,13 @@ export default async function AdminOrdersPage() {
                         {units} {units === 1 ? "piece" : "pieces"}
                       </p>
                     </td>
-                    <td className="max-w-56 truncate px-5 py-4 text-smoke">
+                    <td className="max-w-56 truncate px-4 py-3 text-smoke">
                       {order.user?.email ?? "—"}
                     </td>
-                    <td className="px-5 py-4 text-right font-medium text-ink">
+                    <td className="px-4 py-3 text-right font-medium text-ink">
                       {formatCents(order.subtotalCents)}
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3">
                       <span className="inline-flex items-center gap-2 text-xs text-stone">
                         <span
                           aria-hidden="true"
@@ -103,7 +103,7 @@ export default async function AdminOrdersPage() {
                         {state.label}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-right">
+                    <td className="px-4 py-3 text-right">
                       <Link
                         href={`/admin/orders/${order.id}`}
                         className="link-luxe inline-flex items-center gap-1 text-xs text-ink"

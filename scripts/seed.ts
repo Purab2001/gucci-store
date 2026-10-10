@@ -1,7 +1,10 @@
 import "dotenv/config";
 
+import { hashPassword } from "better-auth/crypto";
+import { and, eq } from "drizzle-orm";
 import { db } from "../src/db";
-import { cartItems, carts, categories, orderItems, orders, products, stripeEvents } from "../src/db/schema";
+import { auth } from "../src/lib/auth";
+import { account, cartItems, carts, categories, orderItems, orders, products, stripeEvents, user } from "../src/db/schema";
 
 function img(id: string, w = 1200): string {
   return `https://images.unsplash.com/${id}?q=80&w=${w}&auto=format&fit=crop`;
@@ -154,6 +157,44 @@ async function main() {
   console.log(
     `Seeded ${CATEGORY_SEED.length} categories, ${PRODUCT_SEED.length} products.`,
   );
+
+  await seedAdmin();
+}
+
+/**
+ * Local-dev atelier login. Uses the Better Auth sign-up API (so the
+ * credential row follows the adapter conventions) and then pins the admin
+ * role plus the documented password — re-running the seed restores both,
+ * so the README credentials always work. Users are never cleared above,
+ * so existing shopper accounts survive re-seeding.
+ */
+const ADMIN_NAME = "Atelier Admin";
+const ADMIN_EMAIL = "admin@gucci.store";
+const ADMIN_PASSWORD = "Atelier1921!";
+
+async function seedAdmin() {
+  let row = await db.query.user.findFirst({
+    where: eq(user.email, ADMIN_EMAIL),
+    columns: { id: true },
+  });
+  if (!row) {
+    await auth.api.signUpEmail({
+      body: { name: ADMIN_NAME, email: ADMIN_EMAIL, password: ADMIN_PASSWORD },
+    });
+    row = await db.query.user.findFirst({
+      where: eq(user.email, ADMIN_EMAIL),
+      columns: { id: true },
+    });
+  }
+  if (!row) throw new Error("Admin seed failed: user row missing.");
+  await db.update(user).set({ role: "admin" }).where(eq(user.id, row.id));
+  await db
+    .update(account)
+    .set({ password: await hashPassword(ADMIN_PASSWORD) })
+    .where(
+      and(eq(account.userId, row.id), eq(account.providerId, "credential")),
+    );
+  console.log(`Admin ready: ${ADMIN_EMAIL} (local development only).`);
 }
 
 main().catch((err) => {

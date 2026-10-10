@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AvailabilityForm } from "@/components/admin/AvailabilityForm";
+import { ProductFilters } from "@/components/admin/ProductFilters";
 import { StockForm } from "@/components/admin/StockForm";
 import { formatCents } from "@/lib/format";
 import { LOW_STOCK_THRESHOLD } from "@/lib/stock";
@@ -8,7 +9,10 @@ import {
   setProductAvailabilityAction,
   updateStockAction,
 } from "@/lib/admin-actions";
-import { getAdminProducts } from "@/lib/admin-products";
+import {
+  getAdminCategoryOptions,
+  getAdminProducts,
+} from "@/lib/admin-products";
 import { requireAdmin } from "@/lib/session";
 
 export const metadata: Metadata = {
@@ -21,39 +25,92 @@ export const instant = false;
 
 type StockFilter = "all" | "low" | "out";
 
+function firstParam(value: string | string[] | undefined): string {
+  const first = Array.isArray(value) ? value[0] : value;
+  return (first ?? "").trim();
+}
+
 function normalizeStockFilter(
   value: string | string[] | undefined,
 ): StockFilter {
-  const first = Array.isArray(value) ? value[0] : value;
+  const first = firstParam(value);
   if (first === "low" || first === "out") return first;
   return "all";
+}
+
+/** Text search covers name + slug only — predictable for v1. */
+function normalizeQuery(value: string | string[] | undefined): string {
+  return firstParam(value).slice(0, 100);
+}
+
+/** Builds chip hrefs that preserve the other active filters. */
+function productsHref({
+  stock,
+  q,
+  category,
+}: {
+  stock?: StockFilter;
+  q?: string;
+  category?: string;
+}): string {
+  const sp = new URLSearchParams();
+  if (stock && stock !== "all") sp.set("stock", stock);
+  if (q) sp.set("q", q);
+  if (category) sp.set("category", category);
+  const qs = sp.toString();
+  return qs ? `/admin/products?${qs}` : "/admin/products";
 }
 
 export default async function AdminProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ stock?: string | string[] }>;
+  searchParams: Promise<{
+    stock?: string | string[];
+    q?: string | string[];
+    category?: string | string[];
+  }>;
 }) {
   // Layout already gates /admin/*; re-check here so this read is
   // itself authorized (defense in depth).
   await requireAdmin("/admin/products");
-  const { stock: stockParam } = await searchParams;
-  const filter = normalizeStockFilter(stockParam);
-  const rows = await getAdminProducts();
+  const params = await searchParams;
+  const filter = normalizeStockFilter(params.stock);
+  const query = normalizeQuery(params.q);
+  const [rows, categoryOptions] = await Promise.all([
+    getAdminProducts(),
+    getAdminCategoryOptions(),
+  ]);
+  // Unknown slugs are ignored (show all) rather than 404ing the table.
+  const categorySlugs = new Set(categoryOptions.map((c) => c.slug));
+  const categoryParam = firstParam(params.category);
+  const category = categorySlugs.has(categoryParam) ? categoryParam : "";
+  const categoryName =
+    categoryOptions.find((c) => c.slug === category)?.name ?? "";
 
-  const outCount = rows.filter((r) => r.stockQuantity <= 0).length;
-  const lowCount = rows.filter(
+  const inScope = rows.filter((r) => {
+    if (category && r.category.slug !== category) return false;
+    if (query) {
+      const haystack = `${r.name} ${r.slug}`.toLowerCase();
+      if (!haystack.includes(query.toLowerCase())) return false;
+    }
+    return true;
+  });
+
+  // Chip counts reflect the current search + category scope so the
+  // three states always add up to the listed rows.
+  const outCount = inScope.filter((r) => r.stockQuantity <= 0).length;
+  const lowCount = inScope.filter(
     (r) => r.stockQuantity >= 1 && r.stockQuantity <= LOW_STOCK_THRESHOLD,
   ).length;
   const visible =
     filter === "out"
-      ? rows.filter((r) => r.stockQuantity <= 0)
+      ? inScope.filter((r) => r.stockQuantity <= 0)
       : filter === "low"
-        ? rows.filter(
+        ? inScope.filter(
             (r) =>
               r.stockQuantity >= 1 && r.stockQuantity <= LOW_STOCK_THRESHOLD,
           )
-        : rows;
+        : inScope;
 
   const chips: { value: StockFilter; label: string; count: number }[] = [
     { value: "all", label: "All", count: rows.length },
@@ -88,10 +145,11 @@ export default async function AdminProductsPage({
         >
           {chips.map((chip) => {
             const isActive = filter === chip.value;
-            const href =
-              chip.value === "all"
-                ? "/admin/products"
-                : `/admin/products?stock=${chip.value}`;
+            const href = productsHref({
+              stock: chip.value,
+              q: query || undefined,
+              category: category || undefined,
+            });
             return (
               <Link
                 key={chip.value}
@@ -111,6 +169,12 @@ export default async function AdminProductsPage({
             );
           })}
         </nav>
+        <ProductFilters
+          query={query}
+          category={category}
+          stock={filter}
+          categories={categoryOptions}
+        />
       </section>
 
       {rows.length === 0 ? (
@@ -125,15 +189,12 @@ export default async function AdminProductsPage({
       ) : visible.length === 0 ? (
         <section className="surface-card px-7 py-8 sm:px-9">
           <p className="eyebrow text-brass">Nothing here</p>
-          <h3 className="heading-sub mt-3">No pieces in this view</h3>
+          <h3 className="heading-sub mt-3">No pieces match these filters</h3>
           <p className="body-luxe mt-3 max-w-md text-sm">
-            {filter === "out"
-              ? "Nothing is out of stock — the atelier is full."
-              : "Nothing is low on stock."}{" "}
-            Stock updates save inline above.
+            Try widening the search or clearing a filter.
           </p>
           <Link href="/admin/products" className="btn btn-secondary mt-6">
-            Show all products
+            Clear filters
           </Link>
         </section>
       ) : (
@@ -146,26 +207,31 @@ export default async function AdminProductsPage({
             {filter !== "all"
               ? ` — ${filter === "out" ? "out of stock" : "low stock"}`
               : ""}
+            {categoryName ? ` — ${categoryName}` : ""}
+            {query ? ` — “${query}”` : ""}{" "}
+            <Link href="/admin/products" className="link-luxe">
+              Clear filters
+            </Link>
           </p>
           <table className="w-full min-w-[46rem] text-left text-sm">
             <thead>
               <tr className="border-b border-line">
-                <th scope="col" className="eyebrow px-5 py-4 text-smoke">
+                <th scope="col" className="eyebrow px-4 py-3 text-smoke">
                   Product
                 </th>
-                <th scope="col" className="eyebrow px-5 py-4 text-smoke">
+                <th scope="col" className="eyebrow px-4 py-3 text-smoke">
                   Category
                 </th>
                 <th
                   scope="col"
-                  className="eyebrow px-5 py-4 text-right text-smoke"
+                  className="eyebrow px-4 py-3 text-right text-smoke"
                 >
                   Price
                 </th>
-                <th scope="col" className="eyebrow px-5 py-4 text-smoke">
+                <th scope="col" className="eyebrow px-4 py-3 text-smoke">
                   Stock
                 </th>
-                <th scope="col" className="eyebrow px-5 py-4 text-smoke">
+                <th scope="col" className="eyebrow px-4 py-3 text-smoke">
                   Status
                 </th>
                 <th scope="col" className="sr-only">
@@ -182,17 +248,17 @@ export default async function AdminProductsPage({
                 const saveStock = updateStockAction.bind(null, row.id);
                 return (
                   <tr key={row.id}>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3">
                       <p className="font-medium text-ink">{row.name}</p>
                       <p className="mt-0.5 text-xs text-stone">{row.slug}</p>
                     </td>
-                    <td className="px-5 py-4 text-smoke">
+                    <td className="px-4 py-3 text-smoke">
                       {row.category.name}
                     </td>
-                    <td className="px-5 py-4 text-right font-medium text-ink">
+                    <td className="px-4 py-3 text-right font-medium text-ink">
                       {formatCents(row.priceCents)}
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3">
                       <StockForm
                         productId={row.id}
                         productName={row.name}
@@ -200,14 +266,14 @@ export default async function AdminProductsPage({
                         formAction={saveStock}
                       />
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3">
                       <AvailabilityForm
                         productName={row.name}
                         isActive={row.isActive}
                         formAction={toggle}
                       />
                     </td>
-                    <td className="px-5 py-4 text-right">
+                    <td className="px-4 py-3 text-right">
                       <Link
                         href={`/admin/products/${row.slug}/edit`}
                         className="link-luxe text-xs text-ink"
