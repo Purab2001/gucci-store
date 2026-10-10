@@ -10,6 +10,10 @@ export const metadata: Metadata = {
   description: "Your past orders.",
 };
 
+// Reads the session at request time — per-customer and live, so this
+// route blocks on the server instead of prerendering.
+export const instant = false;
+
 export default async function AccountOrdersPage() {
   // Layout already gates this route; re-read here so the history renders
   // from a server-authorized session scoped to this customer (defense in

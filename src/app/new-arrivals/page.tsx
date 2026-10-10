@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowRight } from "lucide-react";
 import { ProductCard } from "@/components/product/ProductCard";
+import { ContinueNav } from "@/components/layout/ContinueNav";
 import { getNewArrivals } from "@/lib/products";
 
 export const metadata: Metadata = {
@@ -29,26 +29,14 @@ export default function NewArrivalsPage() {
         <NewArrivalsGrid />
       </Suspense>
 
-      {/* ---------- Quiet footer nav ---------- */}
-      <div className="hairline-t">
-        <div className="container-luxe flex flex-wrap items-center justify-between gap-4 py-8">
-          <p className="eyebrow text-smoke">
-            Grained leather — Brass — Silk
-          </p>
-          <div className="flex flex-wrap items-center gap-6">
-            <Link href="/shop" className="link-luxe text-sm">
-              Shop all pieces
-            </Link>
-            <Link
-              href="/"
-              className="link-nav inline-flex items-center gap-2"
-            >
-              Home
-              <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-            </Link>
-          </div>
-        </div>
-      </div>
+      {/* ---------- Continue — forward only (header already covers Home) ---------- */}
+      <ContinueNav
+        kicker="Continue — The catalogue"
+        links={[
+          { href: "/shop", label: "Shop all pieces" },
+          { href: "/about", label: "About the maison" },
+        ]}
+      />
     </main>
   );
 }

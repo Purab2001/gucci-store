@@ -10,6 +10,10 @@ export const metadata: Metadata = {
   description: "Admin area.",
 };
 
+// Reads the session at request time — admin-only and live, so this
+// route blocks on the server instead of prerendering.
+export const instant = false;
+
 export default async function AdminPage() {
   // Route is already gated by AdminLayout; re-check here so this
   // server read is itself authorized (defense in depth for the action).

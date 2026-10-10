@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   description: "View your account.",
 };
 
+// Reads the session at request time — per-customer and live, so this
+// route blocks on the server instead of prerendering.
+export const instant = false;
+
 export default async function AccountPage() {
   // Layout already gates this route; re-read here so the profile
   // renders from a server-authorized session (defense in depth).

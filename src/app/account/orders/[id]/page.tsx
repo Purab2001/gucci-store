@@ -18,6 +18,10 @@ export const metadata: Metadata = {
   description: "Details of one of your orders.",
 };
 
+// Reads the session at request time — per-customer and live, so this
+// route blocks on the server instead of prerendering.
+export const instant = false;
+
 /**
  * Read-only order detail for the owning customer. Renders from the
  * snapshotted order_items — never re-read from the catalogue — reusing the

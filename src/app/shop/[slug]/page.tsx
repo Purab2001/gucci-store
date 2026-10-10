@@ -3,9 +3,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowRight } from "lucide-react";
 import { ProductCard } from "@/components/product/ProductCard";
 import { AddToBagButton } from "@/components/bag/AddToBagButton";
+import { ContinueNav } from "@/components/layout/ContinueNav";
 import { formatPrice } from "@/lib/format";
 import {
   getAllProductSlugs,
@@ -229,25 +229,17 @@ async function ProductDetails({
         </div>
       </section>
 
-      {/* ---------- Quiet footer nav ---------- */}
-      <div className="hairline-t">
-        <div className="container-luxe flex flex-wrap items-center justify-between gap-4 py-8">
-          <Link
-            href="/shop"
-            className="link-nav inline-flex items-center gap-2"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-            Back to shop
-          </Link>
-          <Link
-            href="/"
-            className="link-nav inline-flex items-center gap-2"
-          >
-            Home
-            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-          </Link>
-        </div>
-      </div>
+      {/* ---------- Continue — forward only (breadcrumb already covers Home / Shop / Category) ---------- */}
+      <ContinueNav
+        kicker="Continue — Further afield"
+        links={[
+          {
+            href: `/collections/${product.categorySlug}`,
+            label: `More ${product.category.toLowerCase()}`,
+          },
+          { href: "/new-arrivals", label: "New arrivals" },
+        ]}
+      />
     </main>
   );
 }

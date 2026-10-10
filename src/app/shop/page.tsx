@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
 import { ShopListing, ShopListingFallback } from "@/components/shop/ShopListing";
 import type { ShopQuery } from "@/components/shop/ShopListing";
+import { ContinueNav } from "@/components/layout/ContinueNav";
 
 export const metadata: Metadata = {
   title: "Shop All Pieces — Gucci Store",
@@ -33,17 +33,14 @@ export default function ShopPage({
         <ShopListing searchParams={searchParams} />
       </Suspense>
 
-      {/* ---------- Quiet footer note (static) ---------- */}
-      <div className="hairline-t">
-        <div className="container-luxe flex flex-wrap items-center justify-between gap-4 py-8">
-          <p className="eyebrow text-smoke">
-            Grained leather — Brass — Silk
-          </p>
-          <Link href="/" className="link-luxe text-sm">
-            Back to home
-          </Link>
-        </div>
-      </div>
+      {/* ---------- Continue — forward only, no breadcrumb to duplicate ---------- */}
+      <ContinueNav
+        kicker="Continue — Beyond the catalogue"
+        links={[
+          { href: "/new-arrivals", label: "New arrivals" },
+          { href: "/about", label: "About the maison" },
+        ]}
+      />
     </main>
   );
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { ProductCard } from "@/components/product/ProductCard";
 import {
   getActiveProductCount,
@@ -86,6 +86,12 @@ export async function ShopListing({
     ? `Search results for \u201c${activeQuery}\u201d`
     : (activeCategory?.name ?? "All products");
 
+  const hasActiveFilters =
+    activeCategory !== null || activeQuery !== null || activeSort !== "featured";
+  const activeSortLabel =
+    sortOptions.find((option) => option.value === activeSort)?.label ??
+    "Featured";
+
   return (
     <>
       {/* ---------- Category filter — restrained row ---------- */}
@@ -98,9 +104,15 @@ export async function ShopListing({
             href={shopHref(null, activeSort, activeQuery)}
             aria-current={!activeCategory ? "page" : undefined}
             data-active={!activeCategory}
-            className={`link-nav shrink-0 whitespace-nowrap ${!activeCategory ? "text-ink" : "text-smoke"}`}
+            className={`link-nav inline-flex shrink-0 items-baseline gap-1.5 whitespace-nowrap ${!activeCategory ? "text-ink" : "text-smoke"}`}
           >
             All
+            <span aria-hidden="true" className="text-[0.6875rem] text-stone">
+              {total}
+            </span>
+            <span className="sr-only">
+              , {total} {total === 1 ? "piece" : "pieces"}
+            </span>
           </Link>
           {shopCategories.map((category) => {
             const isActive = activeCategory?.slug === category.slug;
@@ -110,23 +122,30 @@ export async function ShopListing({
                 href={shopHref(category.slug, activeSort, activeQuery)}
                 aria-current={isActive ? "page" : undefined}
                 data-active={isActive}
-                className={`link-nav shrink-0 whitespace-nowrap ${isActive ? "text-ink" : "text-smoke"}`}
+                className={`link-nav inline-flex shrink-0 items-baseline gap-1.5 whitespace-nowrap ${isActive ? "text-ink" : "text-smoke"}`}
               >
                 {category.name}
+                <span aria-hidden="true" className="text-[0.6875rem] text-stone">
+                  {category.count}
+                </span>
+                <span className="sr-only">
+                  , {category.count}{" "}
+                  {category.count === 1 ? "piece" : "pieces"}
+                </span>
               </Link>
             );
           })}
         </div>
       </nav>
 
-      {/* ---------- Controls — search, count + sort ---------- */}
+      {/* ---------- Controls — toolbar over a result-meta strip ---------- */}
       <div className="hairline-b bg-ivory">
-        <div className="container-luxe flex flex-col gap-4 py-4">
+        <div className="container-luxe grid grid-cols-1 gap-x-10 gap-y-6 py-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-center">
           <form
             action="/shop"
             method="get"
             role="search"
-            className="flex max-w-md flex-col gap-3 sm:flex-row"
+            className="flex w-full flex-col gap-3 sm:flex-row"
           >
             <label htmlFor="shop-search" className="sr-only">
               Search pieces
@@ -138,6 +157,7 @@ export async function ShopListing({
               defaultValue={activeQuery ?? ""}
               placeholder="Search leather, watches, gold…"
               autoComplete="off"
+              enterKeyHint="search"
               maxLength={64}
               className="h-12 flex-1 border border-line bg-canvas px-4 text-sm text-ink placeholder:text-stone focus:border-ink focus:outline-none"
             />
@@ -159,51 +179,94 @@ export async function ShopListing({
               Search
             </button>
           </form>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <p className="eyebrow text-smoke" aria-live="polite">
-                Showing {filtered.length} of {total}
-                {activeCategory ? ` — ${activeCategory.name}` : ""}
-                {activeQuery ? ` — \u201c${activeQuery}\u201d` : ""}
-              </p>
-              {activeQuery ? (
+          <div
+            className="flex max-w-full items-center gap-x-6 overflow-x-auto py-1 lg:justify-self-end"
+            role="group"
+            aria-label="Sort products"
+          >
+            <span className="eyebrow shrink-0 text-stone">Sort</span>
+            {sortOptions.map((option) => {
+              const isActive = activeSort === option.value;
+              return (
                 <Link
+                  key={option.value}
                   href={shopHref(
                     activeCategory?.slug ?? null,
-                    activeSort,
-                    null,
+                    option.value,
+                    activeQuery,
                   )}
-                  className="link-luxe text-sm"
+                  aria-current={isActive ? "page" : undefined}
+                  data-active={isActive}
+                  className={`link-nav shrink-0 whitespace-nowrap ${isActive ? "text-ink" : "text-smoke"}`}
                 >
-                  Clear search
+                  {option.label}
                 </Link>
-              ) : null}
-            </div>
-            <div
-              className="flex flex-wrap items-center gap-x-6 gap-y-2"
-              role="group"
-              aria-label="Sort products"
-            >
-              <span className="eyebrow text-stone">Sort</span>
-              {sortOptions.map((option) => {
-                const isActive = activeSort === option.value;
-                return (
+              );
+            })}
+          </div>
+        </div>
+        {/* ---------- Result meta — count plus active-filter chips in one row ---------- */}
+        <div className="hairline-t">
+          <div className="container-luxe flex flex-wrap items-center gap-x-6 gap-y-3 py-3.5">
+            <p className="eyebrow shrink-0 text-smoke" aria-live="polite">
+              Showing {filtered.length} of {total}
+              {activeCategory ? ` — ${activeCategory.name}` : ""}
+              {activeQuery ? ` — \u201c${activeQuery}\u201d` : ""}
+            </p>
+            {hasActiveFilters ? (
+              <div
+                role="group"
+                aria-label="Active filters"
+                className="flex flex-wrap items-center gap-2"
+              >
+                {activeCategory ? (
                   <Link
-                    key={option.value}
+                    href={shopHref(null, activeSort, activeQuery)}
+                    aria-label={`Remove category filter ${activeCategory.name}`}
+                    className="inline-flex items-center gap-2 border border-line bg-canvas px-3 py-1.5 text-[0.6875rem] font-semibold tracking-[0.22em] text-ink uppercase transition-colors hover:border-ink"
+                  >
+                    {activeCategory.name}
+                    <X className="h-3.5 w-3.5" aria-hidden="true" />
+                  </Link>
+                ) : null}
+                {activeQuery ? (
+                  <Link
                     href={shopHref(
                       activeCategory?.slug ?? null,
-                      option.value,
+                      activeSort,
+                      null,
+                    )}
+                    aria-label={`Remove search filter ${activeQuery}`}
+                    className="inline-flex max-w-full items-center gap-2 border border-line bg-canvas px-3 py-1.5 text-[0.6875rem] font-semibold tracking-[0.22em] text-ink uppercase transition-colors hover:border-ink"
+                  >
+                    <span className="truncate normal-case">
+                      &ldquo;{activeQuery}&rdquo;
+                    </span>
+                    <X
+                      className="h-3.5 w-3.5 shrink-0"
+                      aria-hidden="true"
+                    />
+                  </Link>
+                ) : null}
+                {activeSort !== "featured" ? (
+                  <Link
+                    href={shopHref(
+                      activeCategory?.slug ?? null,
+                      "featured",
                       activeQuery,
                     )}
-                    aria-current={isActive ? "page" : undefined}
-                    data-active={isActive}
-                    className={`link-nav ${isActive ? "text-ink" : "text-smoke"}`}
+                    aria-label={`Remove sort ${activeSortLabel}`}
+                    className="inline-flex items-center gap-2 border border-line bg-canvas px-3 py-1.5 text-[0.6875rem] font-semibold tracking-[0.22em] text-ink uppercase transition-colors hover:border-ink"
                   >
-                    {option.label}
+                    {activeSortLabel}
+                    <X className="h-3.5 w-3.5" aria-hidden="true" />
                   </Link>
-                );
-              })}
-            </div>
+                ) : null}
+                <Link href="/shop" className="link-luxe ml-1 text-sm">
+                  Clear all
+                </Link>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -255,12 +318,21 @@ export function ShopListingFallback() {
         </div>
       </div>
       <div className="hairline-b bg-ivory" aria-hidden="true">
-        <div className="container-luxe flex flex-col gap-4 py-4">
-          <div className="flex max-w-md flex-col gap-3 sm:flex-row">
+        <div className="container-luxe grid grid-cols-1 gap-x-10 gap-y-6 py-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-center">
+          <div className="flex w-full flex-col gap-3 sm:flex-row">
             <div className="h-12 flex-1 animate-pulse border border-line bg-fog" />
             <div className="h-12 w-full animate-pulse border border-line bg-fog sm:w-32" />
           </div>
-          <p className="eyebrow text-stone">Loading pieces…</p>
+          <div className="flex max-w-full items-center gap-6 overflow-x-auto py-1 lg:justify-self-end">
+            <div className="h-3 w-10 shrink-0 animate-pulse bg-linen" />
+            <div className="h-3 w-24 shrink-0 animate-pulse bg-linen" />
+            <div className="h-3 w-32 shrink-0 animate-pulse bg-linen" />
+          </div>
+        </div>
+        <div className="hairline-t">
+          <div className="container-luxe py-3.5">
+            <p className="eyebrow text-stone">Loading pieces…</p>
+          </div>
         </div>
       </div>
       <div className="container-luxe py-10 sm:py-14" aria-hidden="true">

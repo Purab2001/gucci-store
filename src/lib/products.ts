@@ -85,15 +85,27 @@ export async function getCollections(): Promise<Collection[]> {
 }
 
 export async function getShopCategories(): Promise<
-  { name: string; slug: string }[]
+  { name: string; slug: string; count: number }[]
 > {
   "use cache";
   cacheLife("hours");
   const rows = await db
-    .select({ name: categories.name, slug: categories.slug })
+    .select({
+      name: categories.name,
+      slug: categories.slug,
+      count: sql<number>`count(${products.id})`,
+    })
     .from(categories)
+    .leftJoin(
+      products,
+      and(
+        eq(products.categoryId, categories.id),
+        eq(products.isActive, true),
+      ),
+    )
+    .groupBy(categories.id, categories.name, categories.slug)
     .orderBy(asc(categories.name));
-  return rows;
+  return rows.map((row) => ({ ...row, count: Number(row.count) }));
 }
 
 export async function getCollectionBySlug(
